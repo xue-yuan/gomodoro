@@ -1,0 +1,19 @@
+# Binaries
+gomodoro
+gomodoro.exe
+gomodoro-mac-arm64
+gomodoro-mac-intel
+
+# Local configs and database files
+profiles.json
+.gomodoro_profiles.json
+path.txt
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
