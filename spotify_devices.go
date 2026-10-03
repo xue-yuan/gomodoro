@@ -8,12 +8,9 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-// devicePicker lists the account's Spotify devices so the user can choose where music plays.
-// The Spotify settings page uses it to set the default, the timer to switch for the current session.
 type devicePicker struct {
 	open    bool
 	loading bool
-	// current is the choice when the picker opened; it is marked in the list.
 	current spotifyDeviceRef
 	devices []SpotifyDevice
 	index   int
@@ -28,8 +25,6 @@ type deviceOption struct {
 	current bool
 }
 
-// options returns "Automatic" followed by each device that accepts commands. The current choice
-// stays listed while it is offline, so the user can still see what is selected.
 func (p devicePicker) options() []deviceOption {
 	opts := []deviceOption{{current: p.current.isAuto()}}
 	match, found := matchSpotifyDevice(p.devices, p.current)
@@ -82,7 +77,6 @@ func (m *model) receiveSpotifyDevices(msg spotifyDevicesMsg) {
 	}
 }
 
-// updateDevicePicker handles a key while the picker is open and returns the device the user chose, if any.
 func (m *model) updateDevicePicker(key tea.KeyPressMsg) (*spotifyDeviceRef, tea.Cmd) {
 	p := &m.devicePicker
 	opts := p.options()
@@ -104,8 +98,6 @@ func (m *model) updateDevicePicker(key tea.KeyPressMsg) (*spotifyDeviceRef, tea.
 	return nil, nil
 }
 
-// chooseSessionDevice switches the device for this session. Music that is playing moves there now;
-// otherwise the next play uses it.
 func (m *model) chooseSessionDevice(d spotifyDeviceRef) tea.Cmd {
 	m.spotifyTarget = d
 	m.spotifyMissingDevice = ""
@@ -115,7 +107,6 @@ func (m *model) chooseSessionDevice(d spotifyDeviceRef) tea.Cmd {
 	return m.triggerSpotifyPlay()
 }
 
-// spotifyWillPlay reports whether Spotify is playing, or will be once queued commands finish.
 func (m *model) spotifyWillPlay() bool {
 	if m.spotifyWantPlay != nil {
 		return *m.spotifyWantPlay

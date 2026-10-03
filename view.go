@@ -352,6 +352,10 @@ func (m model) spotifyStatusLine() string {
 		return text(t.fg(t.warn), "no playlist set — Settings › Spotify")
 	case m.spotifyError != "":
 		return text(t.fg(t.danger), m.spotifyError)
+	case m.spotifyStalled && m.spotifyDevice != "":
+		return text(t.fg(t.danger), "Playback on "+m.spotifyDevice+" stalled. Resume it in the Spotify app.")
+	case m.spotifyStalled:
+		return text(t.fg(t.danger), "Playback stalled. Resume it in the Spotify app.")
 	}
 	state := "ready"
 	switch {

@@ -278,6 +278,8 @@ func (m *model) dispatchSpotify() tea.Cmd {
 		play := *m.spotifyWantPlay
 		m.spotifyWantPlay = nil
 		m.spotifyBusy = true
+		m.spotifyCheckSeq++
+		m.spotifyStalled = false
 		if !play {
 			m.spotifyInFlight = spotifyActionPause
 			return pauseSpotifyCmd(creds, spotifyCmdTimeout)
@@ -337,6 +339,7 @@ func (m *model) handleSpotifyResult(msg spotifyResultMsg) tea.Cmd {
 		m.storeSpotifyToken(msg.token, msg.fetchedAt)
 	}
 
+	var check tea.Cmd
 	switch {
 	case msg.err != nil:
 		if msg.action != spotifyActionPause {
@@ -352,6 +355,7 @@ func (m *model) handleSpotifyResult(msg spotifyResultMsg) tea.Cmd {
 			m.spotifyDevice = msg.device
 		}
 		m.spotifyMissingDevice = msg.missingDevice
+		check = checkPlaybackCmd(credsFromConfig(m.savedConfig), m.spotifyCheckSeq, m.spotifyDevice, playbackCheckDelay)
 	case msg.action == spotifyActionPause:
 		m.spotifyError = ""
 		m.spotifyState = spotifyPaused
@@ -363,7 +367,7 @@ func (m *model) handleSpotifyResult(msg spotifyResultMsg) tea.Cmd {
 		m.spotifyVolume = *msg.volume
 		m.spotifyVolumeKnown = true
 	}
-	return m.dispatchSpotify()
+	return tea.Batch(check, m.dispatchSpotify())
 }
 
 func (m *model) storeSpotifyToken(token *SpotifyTokenResponse, fetchedAt time.Time) {

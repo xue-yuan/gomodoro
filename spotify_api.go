@@ -51,8 +51,9 @@ func (r spotifyDeviceRef) label() string {
 }
 
 type SpotifyPlayback struct {
-	IsPlaying bool          `json:"is_playing"`
-	Device    SpotifyDevice `json:"device"`
+	IsPlaying  bool          `json:"is_playing"`
+	ProgressMS int           `json:"progress_ms"`
+	Device     SpotifyDevice `json:"device"`
 }
 
 func playerURL(path string, q url.Values, deviceID string) string {
@@ -120,8 +121,6 @@ func spotifyGet(ctx context.Context, accessToken, endpoint string, out any) (boo
 	return false, handleSpotifyError(resp)
 }
 
-// normalizeSpotifyURI turns a share link such as https://open.spotify.com/playlist/ID?si=… into
-// spotify:playlist:ID, and drops a query string pasted after a spotify: URI.
 func normalizeSpotifyURI(s string) string {
 	s = strings.TrimSpace(s)
 	if strings.HasPrefix(s, "spotify:") {

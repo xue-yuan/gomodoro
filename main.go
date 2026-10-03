@@ -103,6 +103,8 @@ type model struct {
 	spotifyDevice string
 	spotifyTarget        spotifyDeviceRef
 	spotifyMissingDevice string
+	spotifyCheckSeq      int
+	spotifyStalled       bool
 	devicePicker         devicePicker
 	spotifyLoaded bool
 	spotifyRequested bool
@@ -255,6 +257,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case spotifyDevicesMsg:
 		m.receiveSpotifyDevices(msg)
 		return m, nil
+
+	case playbackCheckMsg:
+		return m, m.handlePlaybackCheck(msg)
 
 	case volumeApplyMsg:
 		return m, m.applyVolume(msg)
