@@ -66,7 +66,7 @@ type model struct {
 	savedConfig *Config
 	configPath  string
 	saveError   string
-	statusMsg string
+	statusMsg   string
 
 	settingsMenuIndex int
 
@@ -98,24 +98,24 @@ type model struct {
 	spotifyAuthURL      string
 	spotifyAuthDeadline time.Time
 
-	spotifyError  string
-	spotifyState  spotifyPlayState
-	spotifyDevice string
+	spotifyError         string
+	spotifyState         spotifyPlayState
+	spotifyDevice        string
 	spotifyTarget        spotifyDeviceRef
 	spotifyMissingDevice string
 	spotifyCheckSeq      int
 	spotifyStalled       bool
 	devicePicker         devicePicker
-	spotifyLoaded bool
-	spotifyRequested bool
-	spotifyBusy        bool
-	spotifyInFlight    spotifyAction
-	spotifyWantPlay    *bool
-	spotifyWantVolume  *int
-	spotifyVolume      int
-	spotifyVolumeKnown bool
-	volumePending      bool
-	volumeSeq          int
+	spotifyLoaded        bool
+	spotifyRequested     bool
+	spotifyBusy          bool
+	spotifyInFlight      spotifyAction
+	spotifyWantPlay      *bool
+	spotifyWantVolume    *int
+	spotifyVolume        int
+	spotifyVolumeKnown   bool
+	volumePending        bool
+	volumeSeq            int
 
 	sessionActive   bool
 	activeProfile   Profile
@@ -123,8 +123,8 @@ type model struct {
 	currentSub      subPhase
 	completedGroups int
 	cycleFinished   bool
-	phaseReady  bool
-	confirmQuit bool
+	phaseReady      bool
+	confirmQuit     bool
 
 	timeRemaining time.Duration
 	deadline      time.Time

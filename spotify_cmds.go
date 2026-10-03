@@ -53,11 +53,11 @@ const (
 )
 
 type spotifyResultMsg struct {
-	action    spotifyAction
-	token     *SpotifyTokenResponse
-	fetchedAt time.Time
-	volume *int
-	device string
+	action        spotifyAction
+	token         *SpotifyTokenResponse
+	fetchedAt     time.Time
+	volume        *int
+	device        string
 	missingDevice string
 	loadedContext bool
 	err           error

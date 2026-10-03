@@ -25,16 +25,16 @@ type Profile struct {
 }
 
 type Config struct {
-	Profiles       []Profile `json:"profiles"`
-	Sound          string    `json:"sound"`
-	SpotifyURI     string    `json:"spotify_uri"`
-	SpotifyEnabled bool      `json:"spotify_enabled"`
-	SpotifyVolume *int `json:"spotify_volume_percent,omitempty"`
-	LegacySpotifyVolume int  `json:"spotify_volume,omitempty"`
-	AutoStart           bool `json:"auto_start"`
-	QuickStartProfile string `json:"quick_start_profile,omitempty"`
-	SpotifyDeviceID   string `json:"spotify_device_id,omitempty"`
-	SpotifyDeviceName string `json:"spotify_device_name,omitempty"`
+	Profiles            []Profile `json:"profiles"`
+	Sound               string    `json:"sound"`
+	SpotifyURI          string    `json:"spotify_uri"`
+	SpotifyEnabled      bool      `json:"spotify_enabled"`
+	SpotifyVolume       *int      `json:"spotify_volume_percent,omitempty"`
+	LegacySpotifyVolume int       `json:"spotify_volume,omitempty"`
+	AutoStart           bool      `json:"auto_start"`
+	QuickStartProfile   string    `json:"quick_start_profile,omitempty"`
+	SpotifyDeviceID     string    `json:"spotify_device_id,omitempty"`
+	SpotifyDeviceName   string    `json:"spotify_device_name,omitempty"`
 
 	SpotifyClientID     string    `json:"spotify_client_id"`
 	SpotifyClientSecret string    `json:"spotify_client_secret"`
