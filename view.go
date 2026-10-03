@@ -18,7 +18,8 @@ func (m model) statusLine() string {
 func (m model) viewMenu() string {
 	t := m.theme
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.text).Bold(true).Render("What are we focusing on?") + "\n\n")
+	sb.WriteString(t.fg(t.text).Bold(true).Render("What are we focusing on?"))
+	sb.WriteString("\n\n")
 
 	items := m.mainMenuItems()
 	idx := wrapIndex(m.menuIndex, len(items))
@@ -28,13 +29,18 @@ func (m model) viewMenu() string {
 		if it.id == "resume" {
 			accent = t.shortBreak
 		}
-		sb.WriteString(m.listItem(selected, accent, it.label, "") + "\n")
+		sb.WriteString(m.listItem(selected, accent, it.label, ""))
+		sb.WriteString("\n")
 		if it.value != "" {
 			desc := truncate(it.value, m.contentWidth()-2)
 			if selected {
-				sb.WriteString("  " + t.fg(t.muted).Render(desc) + "\n")
+				sb.WriteString("  ")
+				sb.WriteString(t.fg(t.muted).Render(desc))
+				sb.WriteString("\n")
 			} else {
-				sb.WriteString("  " + t.fg(t.subtle).Render(desc) + "\n")
+				sb.WriteString("  ")
+				sb.WriteString(t.fg(t.subtle).Render(desc))
+				sb.WriteString("\n")
 			}
 		}
 		if i < len(items)-1 {
@@ -53,7 +59,8 @@ func (m model) viewSettingsMenu() string {
 	var sb strings.Builder
 	for i, it := range m.settingsItems() {
 		value := truncate(it.value, m.contentWidth()-lipgloss.Width(it.label)-6)
-		sb.WriteString(m.listItem(i == m.settingsMenuIndex, t.focus, it.label, value) + "\n")
+		sb.WriteString(m.listItem(i == m.settingsMenuIndex, t.focus, it.label, value))
+		sb.WriteString("\n")
 		if i < len(m.settingsItems())-1 {
 			sb.WriteString("\n")
 		}
@@ -71,9 +78,13 @@ func (m model) viewSelectProfile() string {
 	profiles := m.savedConfig.Profiles
 
 	if len(profiles) == 0 {
-		sb.WriteString(t.fg(t.text).Render("No profiles yet.") + "\n\n")
-		sb.WriteString(t.fg(t.muted).Width(m.contentWidth()).Render("A profile sets how many focus groups you do, how long each focus and break lasts, and the long break at the end.") + "\n\n")
-		sb.WriteString(t.fg(t.muted).Render("Press ") + t.fg(t.focus).Bold(true).Render("n") + t.fg(t.muted).Render(" to create your first one."))
+		sb.WriteString(t.fg(t.text).Render("No profiles yet."))
+		sb.WriteString("\n\n")
+		sb.WriteString(t.fg(t.muted).Width(m.contentWidth()).Render("A profile sets how many focus groups you do, how long each focus and break lasts, and the long break at the end."))
+		sb.WriteString("\n\n")
+		sb.WriteString(t.fg(t.muted).Render("Press "))
+		sb.WriteString(t.fg(t.focus).Bold(true).Render("n"))
+		sb.WriteString(t.fg(t.muted).Render(" to create your first one."))
 	} else {
 		quick := m.savedConfig.QuickStartProfile
 		for i, p := range profiles {
@@ -82,16 +93,19 @@ func (m model) viewSelectProfile() string {
 				label += " ★"
 			}
 			summary := truncate(profileSummary(p), m.contentWidth()-lipgloss.Width(label)-6)
-			sb.WriteString(m.listItem(i == m.profileIndex, t.focus, label, summary) + "\n")
+			sb.WriteString(m.listItem(i == m.profileIndex, t.focus, label, summary))
+			sb.WriteString("\n")
 		}
 		if quick != "" {
-			sb.WriteString("\n" + t.fg(t.subtle).Render("★ used by Quick start"))
+			sb.WriteString("\n")
+			sb.WriteString(t.fg(t.subtle).Render("★ used by Quick start"))
 		}
 	}
 
 	if m.confirmDelete && m.profileIndex < len(profiles) {
-		sb.WriteString("\n\n" + t.fg(t.danger).Bold(true).Render(fmt.Sprintf("Delete %q?", profiles[m.profileIndex].Name)) +
-			t.fg(t.muted).Render("  y delete · any other key cancel"))
+		sb.WriteString("\n\n")
+		sb.WriteString(t.fg(t.danger).Bold(true).Render(fmt.Sprintf("Delete %q?", profiles[m.profileIndex].Name)))
+		sb.WriteString(t.fg(t.muted).Render("  y delete · any other key cancel"))
 	}
 	sb.WriteString(m.statusLine())
 
@@ -123,7 +137,8 @@ func (m model) fieldLabel(text string, focused bool, width int) string {
 func (m model) viewConfigName() string {
 	t := m.theme
 	var sb strings.Builder
-	sb.WriteString(m.formTitle(1) + "\n\n")
+	sb.WriteString(m.formTitle(1))
+	sb.WriteString("\n\n")
 
 	labels := []string{"Name", "Focus groups", "Long break"}
 	suffixes := []string{"", "1–8", "minutes"}
@@ -132,7 +147,8 @@ func (m model) viewConfigName() string {
 		if suffixes[i] != "" {
 			line += " " + t.fg(t.subtle).Render(suffixes[i])
 		}
-		sb.WriteString(line + "\n\n")
+		sb.WriteString(line)
+		sb.WriteString("\n\n")
 	}
 	sb.WriteString(m.errorLine(m.configError))
 
@@ -144,20 +160,27 @@ func (m model) viewConfigName() string {
 func (m model) viewConfigGroups() string {
 	t := m.theme
 	var sb strings.Builder
-	sb.WriteString(m.formTitle(2) + "\n")
-	sb.WriteString(t.fg(t.muted).Render(fmt.Sprintf("%s · long break %s", m.configProfileName, formatMinutes(m.configLongBreak))) + "\n\n")
+	sb.WriteString(m.formTitle(2))
+	sb.WriteString("\n")
+	sb.WriteString(t.fg(t.muted).Render(fmt.Sprintf("%s · long break %s", m.configProfileName, formatMinutes(m.configLongBreak))))
+	sb.WriteString("\n\n")
 
 	head := t.fg(t.subtle).Bold(true)
-	sb.WriteString(head.Width(10).Render("GROUP") + head.Width(14).Render("FOCUS") + head.Render("BREAK") + "\n")
+	sb.WriteString(head.Width(10).Render("GROUP"))
+	sb.WriteString(head.Width(14).Render("FOCUS"))
+	sb.WriteString(head.Render("BREAK"))
+	sb.WriteString("\n")
 	for i := 0; i < m.configNumGroups; i++ {
 		wIdx, bIdx := 2*i, 2*i+1
 		rowFocused := m.configStep2Focus == wIdx || m.configStep2Focus == bIdx
 		label := m.fieldLabel(fmt.Sprintf("#%d", i+1), rowFocused, 10)
-		sb.WriteString(label +
-			lipgloss.NewStyle().Width(14).Render(m.configInputsStep2[wIdx].View()) +
-			m.configInputsStep2[bIdx].View() + "\n")
+		sb.WriteString(label)
+		sb.WriteString(lipgloss.NewStyle().Width(14).Render(m.configInputsStep2[wIdx].View()))
+		sb.WriteString(m.configInputsStep2[bIdx].View())
+		sb.WriteString("\n")
 	}
-	sb.WriteString("\n" + t.fg(t.subtle).Render("All durations are in minutes."))
+	sb.WriteString("\n")
+	sb.WriteString(t.fg(t.subtle).Render("All durations are in minutes."))
 	sb.WriteString(m.errorLine(m.configError))
 
 	return m.frame(t.focus, "Profiles", sb.String(), []helpItem{
@@ -168,7 +191,8 @@ func (m model) viewConfigGroups() string {
 func (m model) viewSoundSettings() string {
 	t := m.theme
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.muted).Render("Played when a phase ends.") + "\n\n")
+	sb.WriteString(t.fg(t.muted).Render("Played when a phase ends."))
+	sb.WriteString("\n\n")
 
 	current := m.sound()
 	colWidth := m.contentWidth() / 2
@@ -188,9 +212,11 @@ func (m model) viewSoundSettings() string {
 		if r+soundRows < len(systemSounds) {
 			line += cell(r + soundRows)
 		}
-		sb.WriteString(line + "\n")
+		sb.WriteString(line)
+		sb.WriteString("\n")
 	}
-	sb.WriteString("\n" + t.fg(t.subtle).Render("★ current sound"))
+	sb.WriteString("\n")
+	sb.WriteString(t.fg(t.subtle).Render("★ current sound"))
 
 	return m.frame(t.focus, "Settings › Sound", sb.String(), []helpItem{
 		{"↑/↓/←/→", "move"}, {"space", "preview"}, {"enter", "save"}, {"esc", "cancel"},
@@ -213,40 +239,51 @@ func (m model) viewSpotifySettings() string {
 		return t.fg(t.subtle).Render("○ Off")
 	}
 
-	sb.WriteString(row(m.spotifyRowLabel(0, "Autoplay during focus"), pill(m.spotifyEnabledDraft), w) + "\n\n")
+	sb.WriteString(row(m.spotifyRowLabel(0, "Autoplay during focus"), pill(m.spotifyEnabledDraft), w))
+	sb.WriteString("\n\n")
 
-	sb.WriteString(m.spotifyRowLabel(1, "Playlist / track URI") + "\n")
-	sb.WriteString("  " + m.spotifyInputs[0].View() + "\n\n")
+	sb.WriteString(m.spotifyRowLabel(1, "Playlist / track URI"))
+	sb.WriteString("\n")
+	sb.WriteString("  ")
+	sb.WriteString(m.spotifyInputs[0].View())
+	sb.WriteString("\n\n")
 
 	device := m.spotifyDeviceDraft.label()
-	sb.WriteString(row(m.spotifyRowLabel(2, "Playback device"), t.fg(t.muted).Render(truncate(device, w-24)), w) + "\n\n")
+	sb.WriteString(row(m.spotifyRowLabel(2, "Playback device"), t.fg(t.muted).Render(truncate(device, w-24)), w))
+	sb.WriteString("\n\n")
 
 	credValue := t.fg(t.danger).Render("missing")
 	if id := m.savedConfig.SpotifyClientID; id != "" {
 		credValue = t.fg(t.muted).Render("Client ID …" + id[max(0, len(id)-4):])
 	}
-	sb.WriteString(row(m.spotifyRowLabel(3, "API credentials"), credValue, w) + "\n\n")
+	sb.WriteString(row(m.spotifyRowLabel(3, "API credentials"), credValue, w))
+	sb.WriteString("\n\n")
 
 	account := t.fg(t.warn).Render("○ Not linked")
 	if m.savedConfig.SpotifyRefreshToken != "" {
 		account = t.fg(t.spotify).Render("● Linked")
 	}
-	sb.WriteString(row(m.spotifyRowLabel(4, "Authorize account"), account, w) + "\n\n")
+	sb.WriteString(row(m.spotifyRowLabel(4, "Authorize account"), account, w))
+	sb.WriteString("\n\n")
 
 	save := "Save"
 	if m.spotifyFocusIndex == 5 {
-		sb.WriteString(t.fg(accent).Render("▌ ") + lipgloss.NewStyle().Bold(true).Foreground(t.text).Render("[ "+save+" ]"))
+		sb.WriteString(t.fg(accent).Render("▌ "))
+		sb.WriteString(lipgloss.NewStyle().Bold(true).Foreground(t.text).Render("[ " + save + " ]"))
 	} else {
-		sb.WriteString("  " + t.fg(t.muted).Render("[ "+save+" ]"))
+		sb.WriteString("  ")
+		sb.WriteString(t.fg(t.muted).Render("[ " + save + " ]"))
 	}
 	if m.spotifyDirty() {
-		sb.WriteString("   " + t.fg(t.warn).Render("● Unsaved changes"))
+		sb.WriteString("   ")
+		sb.WriteString(t.fg(t.warn).Render("● Unsaved changes"))
 	}
 	sb.WriteString("\n")
 
 	sb.WriteString(m.errorLine(m.configError))
 	sb.WriteString(m.statusLine())
-	sb.WriteString("\n" + t.fg(t.subtle).Width(w).Render("Requires Spotify Premium. Open Spotify on any device before starting a session."))
+	sb.WriteString("\n")
+	sb.WriteString(t.fg(t.subtle).Width(w).Render("Requires Spotify Premium. Open Spotify on any device before starting a session."))
 
 	escDesc := "back"
 	if m.spotifyDirty() {
@@ -268,12 +305,15 @@ func (m model) spotifyRowLabel(i int, label string) string {
 func (m model) viewSpotifyCredentials() string {
 	t := m.theme
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.muted).Width(m.contentWidth()).Render("From your app at developer.spotify.com. Its redirect URI must be "+spotifyRedirectURI) + "\n\n")
+	sb.WriteString(t.fg(t.muted).Width(m.contentWidth()).Render("From your app at developer.spotify.com. Its redirect URI must be " + spotifyRedirectURI))
+	sb.WriteString("\n\n")
 
 	labels := []string{"Client ID", "Client Secret"}
 	for i, label := range labels {
-		sb.WriteString(m.fieldLabel(label, i == m.spotifyCredFocus, 0) + "\n")
-		sb.WriteString(m.spotifyCredInputs[i].View() + "\n\n")
+		sb.WriteString(m.fieldLabel(label, i == m.spotifyCredFocus, 0))
+		sb.WriteString("\n")
+		sb.WriteString(m.spotifyCredInputs[i].View())
+		sb.WriteString("\n\n")
 	}
 	sb.WriteString(m.errorLine(m.configError))
 
@@ -286,12 +326,15 @@ func (m model) viewSpotifyAuthWaiting() string {
 	t := m.theme
 	w := m.contentWidth()
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.text).Bold(true).Render("Waiting for Spotify…") + "\n\n")
-	sb.WriteString(t.fg(t.muted).Width(w).Render("Approve access in the browser window that just opened. This page updates automatically when you're done.") + "\n\n")
+	sb.WriteString(t.fg(t.text).Bold(true).Render("Waiting for Spotify…"))
+	sb.WriteString("\n\n")
+	sb.WriteString(t.fg(t.muted).Width(w).Render("Approve access in the browser window that just opened. This page updates automatically when you're done."))
+	sb.WriteString("\n\n")
 
 	link := lipgloss.NewStyle().Foreground(t.spotify).Underline(true).Hyperlink(m.spotifyAuthURL).
 		Render(truncate(m.spotifyAuthURL, w))
-	sb.WriteString(link + "\n\n")
+	sb.WriteString(link)
+	sb.WriteString("\n\n")
 	sb.WriteString(t.fg(t.subtle).Render(fmt.Sprintf("Listening on %s · expires at %s", spotifyRedirectURI, m.spotifyAuthDeadline.Format("15:04"))))
 	sb.WriteString(m.statusLine())
 
@@ -304,13 +347,18 @@ func (m model) viewConfigPathSettings() string {
 	t := m.theme
 	w := m.contentWidth()
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.text).Bold(true).Render("Where should gomodoro keep its config?") + "\n\n")
-	sb.WriteString(m.configPathInput.View() + "\n\n")
+	sb.WriteString(t.fg(t.text).Bold(true).Render("Where should gomodoro keep its config?"))
+	sb.WriteString("\n\n")
+	sb.WriteString(m.configPathInput.View())
+	sb.WriteString("\n\n")
 
 	note := t.fg(t.muted)
-	sb.WriteString(note.Width(w).Render("• New file: your current settings are copied there.") + "\n")
-	sb.WriteString(note.Width(w).Render("• Existing gomodoro config: it is used as-is.") + "\n")
-	sb.WriteString(note.Width(w).Render("• Any other existing file is never overwritten.") + "\n")
+	sb.WriteString(note.Width(w).Render("• New file: your current settings are copied there."))
+	sb.WriteString("\n")
+	sb.WriteString(note.Width(w).Render("• Existing gomodoro config: it is used as-is."))
+	sb.WriteString("\n")
+	sb.WriteString(note.Width(w).Render("• Any other existing file is never overwritten."))
+	sb.WriteString("\n")
 	sb.WriteString(m.errorLine(m.configError))
 
 	return m.frame(t.focus, "Settings › Config file", strings.TrimRight(sb.String(), "\n"), []helpItem{
@@ -451,13 +499,18 @@ func (m model) viewTimer() string {
 	stats := m.sessionDots(accent) + t.fg(t.subtle).Render(fmt.Sprintf("   %d/%d focus done", m.completedGroups, len(m.activeProfile.Groups)))
 
 	var sb strings.Builder
-	sb.WriteString(header + "\n\n")
-	sb.WriteString(clock + "\n\n")
-	sb.WriteString(bar + "\n\n")
-	sb.WriteString(center.Render(state) + "\n\n")
+	sb.WriteString(header)
+	sb.WriteString("\n\n")
+	sb.WriteString(clock)
+	sb.WriteString("\n\n")
+	sb.WriteString(bar)
+	sb.WriteString("\n\n")
+	sb.WriteString(center.Render(state))
+	sb.WriteString("\n\n")
 	sb.WriteString(stats)
 	if sp := m.spotifyStatusLine(); sp != "" {
-		sb.WriteString("\n" + sp)
+		sb.WriteString("\n")
+		sb.WriteString(sp)
 	}
 
 	playLabel := "start"
@@ -484,9 +537,12 @@ func (m model) viewCycleFinished() string {
 	}
 
 	var sb strings.Builder
-	sb.WriteString(center.Render(t.fg(t.success).Bold(true).Render("✓ Cycle complete")) + "\n\n")
-	sb.WriteString(center.Render(strings.Repeat("🍅", m.completedGroups)) + "\n\n")
-	sb.WriteString(center.Render(t.fg(t.muted).Render(fmt.Sprintf("%d focus sessions · %s of focus", m.completedGroups, formatMinutes(focusMin)))) + "\n\n")
+	sb.WriteString(center.Render(t.fg(t.success).Bold(true).Render("✓ Cycle complete")))
+	sb.WriteString("\n\n")
+	sb.WriteString(center.Render(strings.Repeat("🍅", m.completedGroups)))
+	sb.WriteString("\n\n")
+	sb.WriteString(center.Render(t.fg(t.muted).Render(fmt.Sprintf("%d focus sessions · %s of focus", m.completedGroups, formatMinutes(focusMin)))))
+	sb.WriteString("\n\n")
 	sb.WriteString(center.Render(t.fg(t.text).Render("Start another cycle?")))
 
 	return m.frame(t.success, m.activeProfile.Name, sb.String(), []helpItem{

@@ -122,7 +122,8 @@ func (m model) viewDevicePicker(accent color.Color, section, intro string) strin
 	p := m.devicePicker
 	w := m.contentWidth()
 	var sb strings.Builder
-	sb.WriteString(t.fg(t.muted).Width(w).Render(intro) + "\n\n")
+	sb.WriteString(t.fg(t.muted).Width(w).Render(intro))
+	sb.WriteString("\n\n")
 
 	opts := p.options()
 	idx := min(p.index, len(opts)-1)
@@ -142,17 +143,23 @@ func (m model) viewDevicePicker(accent color.Color, section, intro string) strin
 		if o.current {
 			label += " ★"
 		}
-		sb.WriteString(m.listItem(i == idx, accent, label, value) + "\n")
+		sb.WriteString(m.listItem(i == idx, accent, label, value))
+		sb.WriteString("\n")
 	}
 
 	switch {
 	case p.loading:
-		sb.WriteString("\n" + t.fg(t.subtle).Render("Looking for devices…") + "\n")
+		sb.WriteString("\n")
+		sb.WriteString(t.fg(t.subtle).Render("Looking for devices…"))
+		sb.WriteString("\n")
 	case p.err == "" && len(opts) == 1:
-		sb.WriteString("\n" + t.fg(t.muted).Width(w).Render("No devices found. Open Spotify on the device you want, then press r.") + "\n")
+		sb.WriteString("\n")
+		sb.WriteString(t.fg(t.muted).Width(w).Render("No devices found. Open Spotify on the device you want, then press r."))
+		sb.WriteString("\n")
 	}
 	sb.WriteString(m.errorLine(p.err))
-	sb.WriteString("\n" + t.fg(t.subtle).Render("★ current choice"))
+	sb.WriteString("\n")
+	sb.WriteString(t.fg(t.subtle).Render("★ current choice"))
 
 	return m.frame(accent, section, sb.String(), []helpItem{
 		{"↑/↓", "move"}, {"enter", "choose"}, {"r", "refresh"}, {"esc", "cancel"},
