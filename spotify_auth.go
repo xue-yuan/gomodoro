@@ -2,13 +2,25 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"html"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+)
+
+const (
+	oauthListenAddr    = "127.0.0.1:8080"
+	spotifyRedirectURI = "http://127.0.0.1:8080/callback"
+	spotifyTokenURL    = "https://accounts.spotify.com/api/token"
+	spotifyScopes      = "user-modify-playback-state user-read-playback-state"
 )
 
 type SpotifyTokenResponse struct {
@@ -19,77 +31,115 @@ type SpotifyTokenResponse struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-func StartOAuthServer(ctx context.Context) (string, error) {
+func newOAuthState() (string, error) {
+	b := make([]byte, 16)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func getSpotifyAuthURL(clientID, state string) string {
+	q := url.Values{
+		"client_id":     {clientID},
+		"response_type": {"code"},
+		"redirect_uri":  {spotifyRedirectURI},
+		"scope":         {spotifyScopes},
+		"state":         {state},
+	}
+	return "https://accounts.spotify.com/authorize?" + q.Encode()
+}
+
+type oauthCallbackResult struct {
+	code string
+	err  error
+}
+
+func writeCallbackPage(w http.ResponseWriter, status int, color, heading, body string) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = fmt.Fprintf(w, `<html><body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
+	<h1 style="color: %s;">%s</h1>
+	<p>%s</p>
+</body></html>`, color, html.EscapeString(heading), html.EscapeString(body))
+}
+
+func newOAuthCallbackHandler(expectedState string, results chan<- oauthCallbackResult) http.Handler {
+	deliver := func(res oauthCallbackResult) {
+		select {
+		case results <- res:
+		default:
+		}
+	}
+
 	mux := http.NewServeMux()
-	codeChan := make(chan string, 1)
-	errChan := make(chan error, 1)
-
 	mux.HandleFunc("/callback", func(w http.ResponseWriter, r *http.Request) {
-		code := r.URL.Query().Get("code")
-		stateErr := r.URL.Query().Get("error")
-
-		if stateErr != "" {
-			errChan <- fmt.Errorf("spotify authentication error: %s", stateErr)
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.WriteHeader(http.StatusBadRequest)
-			_, _ = w.Write([]byte(`<html><body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-				<h1 style="color: #EF4444;">Authentication Failed</h1>
-				<p>Error: ` + stateErr + `</p>
-			</body></html>`))
+		q := r.URL.Query()
+		if subtle.ConstantTimeCompare([]byte(q.Get("state")), []byte(expectedState)) != 1 {
+			writeCallbackPage(w, http.StatusBadRequest, "#EF4444", "Authentication Failed", "Invalid or missing state parameter.")
 			return
 		}
 
+		if authErr := q.Get("error"); authErr != "" {
+			deliver(oauthCallbackResult{err: fmt.Errorf("spotify authentication error: %s", authErr)})
+			writeCallbackPage(w, http.StatusBadRequest, "#EF4444", "Authentication Failed", "Error: "+authErr)
+			return
+		}
+
+		code := q.Get("code")
 		if code == "" {
-			errChan <- fmt.Errorf("no authorization code returned in callback")
-			w.WriteHeader(http.StatusBadRequest)
+			deliver(oauthCallbackResult{err: fmt.Errorf("no authorization code returned in callback")})
+			writeCallbackPage(w, http.StatusBadRequest, "#EF4444", "Authentication Failed", "No authorization code returned.")
 			return
 		}
 
-		codeChan <- code
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(`<html><body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
-			<h1 style="color: #1DB954;">Authentication Successful!</h1>
-			<p>You can close this window now and return to your terminal.</p>
-		</body></html>`))
+		deliver(oauthCallbackResult{code: code})
+		writeCallbackPage(w, http.StatusOK, "#1DB954", "Authentication Successful!", "You can close this window now and return to your terminal.")
 	})
+	return mux
+}
 
+func StartOAuthServer(ctx context.Context, expectedState string, onListening func()) (string, error) {
+	listener, err := net.Listen("tcp", oauthListenAddr)
+	if err != nil {
+		return "", fmt.Errorf("failed to start local OAuth server on %s: %v", oauthListenAddr, err)
+	}
+
+	results := make(chan oauthCallbackResult, 1)
+	serveErr := make(chan error, 1)
 	server := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
+		Handler:           newOAuthCallbackHandler(expectedState, results),
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	go func() {
-		if err := server.ListenAndServe(); err != http.ErrServerClosed {
-			errChan <- fmt.Errorf("failed to start local OAuth server: %v", err)
+		if err := server.Serve(listener); err != http.ErrServerClosed {
+			serveErr <- fmt.Errorf("local OAuth server stopped: %v", err)
 		}
 	}()
 
-	select {
-	case code := <-codeChan:
+	defer func() {
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
-		return code, nil
-	case err := <-errChan:
-		_ = server.Shutdown(context.Background())
+	}()
+
+	if onListening != nil {
+		onListening()
+	}
+
+	select {
+	case res := <-results:
+		return res.code, res.err
+	case err := <-serveErr:
 		return "", err
 	case <-ctx.Done():
-		_ = server.Shutdown(context.Background())
 		return "", ctx.Err()
 	}
 }
 
-func ExchangeCodeForToken(clientID, clientSecret, code string) (*SpotifyTokenResponse, error) {
-	tokenURL := "https://accounts.spotify.com/api/token"
-	redirectURI := "http://127.0.0.1:8080/callback"
-
-	data := url.Values{}
-	data.Set("grant_type", "authorization_code")
-	data.Set("code", code)
-	data.Set("redirect_uri", redirectURI)
-
-	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(data.Encode()))
+func requestSpotifyToken(ctx context.Context, clientID, clientSecret string, form url.Values) (*SpotifyTokenResponse, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, spotifyTokenURL, strings.NewReader(form.Encode()))
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +148,7 @@ func ExchangeCodeForToken(clientID, clientSecret, code string) (*SpotifyTokenRes
 	authHeader := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
 	req.Header.Set("Authorization", "Basic "+authHeader)
 
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := spotifyHTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -108,56 +157,38 @@ func ExchangeCodeForToken(clientID, clientSecret, code string) (*SpotifyTokenRes
 	if resp.StatusCode != http.StatusOK {
 		var errData map[string]interface{}
 		_ = json.NewDecoder(resp.Body).Decode(&errData)
-		return nil, fmt.Errorf("token exchange failed: status %d, error %v", resp.StatusCode, errData)
+		return nil, fmt.Errorf("status %d, error %v", resp.StatusCode, errData)
 	}
 
 	var tokenResp SpotifyTokenResponse
-	err = json.NewDecoder(resp.Body).Decode(&tokenResp)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return nil, err
 	}
-
 	return &tokenResp, nil
 }
 
-func RefreshSpotifyToken(clientID, clientSecret, refreshToken string) (*SpotifyTokenResponse, error) {
-	tokenURL := "https://accounts.spotify.com/api/token"
-
-	data := url.Values{}
-	data.Set("grant_type", "refresh_token")
-	data.Set("refresh_token", refreshToken)
-
-	req, err := http.NewRequest("POST", tokenURL, strings.NewReader(data.Encode()))
+func ExchangeCodeForToken(ctx context.Context, clientID, clientSecret, code string) (*SpotifyTokenResponse, error) {
+	resp, err := requestSpotifyToken(ctx, clientID, clientSecret, url.Values{
+		"grant_type":   {"authorization_code"},
+		"code":         {code},
+		"redirect_uri": {spotifyRedirectURI},
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token exchange failed: %v", err)
 	}
+	return resp, nil
+}
 
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	authHeader := base64.StdEncoding.EncodeToString([]byte(clientID + ":" + clientSecret))
-	req.Header.Set("Authorization", "Basic "+authHeader)
-
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+func RefreshSpotifyToken(ctx context.Context, clientID, clientSecret, refreshToken string) (*SpotifyTokenResponse, error) {
+	resp, err := requestSpotifyToken(ctx, clientID, clientSecret, url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {refreshToken},
+	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("token refresh failed: %v", err)
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errData map[string]interface{}
-		_ = json.NewDecoder(resp.Body).Decode(&errData)
-		return nil, fmt.Errorf("token refresh failed: status %d, error %v", resp.StatusCode, errData)
+	if resp.RefreshToken == "" {
+		resp.RefreshToken = refreshToken
 	}
-
-	var tokenResp SpotifyTokenResponse
-	err = json.NewDecoder(resp.Body).Decode(&tokenResp)
-	if err != nil {
-		return nil, err
-	}
-
-	if tokenResp.RefreshToken == "" {
-		tokenResp.RefreshToken = refreshToken
-	}
-
-	return &tokenResp, nil
+	return resp, nil
 }

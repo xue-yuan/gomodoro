@@ -6,7 +6,8 @@ import (
 )
 
 type Notifier interface {
-	Notify(title, subtitle, message, sound string) error
+	Notify(title, subtitle, message string) error
+	PlaySound(name string)
 }
 
 type AppleScriptNotifier struct{}
@@ -15,37 +16,15 @@ func NewNotifier() AppleScriptNotifier {
 	return AppleScriptNotifier{}
 }
 
-func (n AppleScriptNotifier) Notify(title, subtitle, message, sound string) error {
-	if sound == "" {
-		sound = "Glass"
-	}
+const notifyScript = `on run argv
+	display notification (item 1 of argv) with title (item 2 of argv) subtitle (item 3 of argv)
+end run`
 
-	escapedMsg := ""
-	for _, char := range message {
-		if char == '"' {
-			escapedMsg += `\"`
-		} else {
-			escapedMsg += string(char)
-		}
-	}
-	escapedTitle := ""
-	for _, char := range title {
-		if char == '"' {
-			escapedTitle += `\"`
-		} else {
-			escapedTitle += string(char)
-		}
-	}
-	escapedSubtitle := ""
-	for _, char := range subtitle {
-		if char == '"' {
-			escapedSubtitle += `\"`
-		} else {
-			escapedSubtitle += string(char)
-		}
-	}
+func (n AppleScriptNotifier) Notify(title, subtitle, message string) error {
+	return exec.Command("osascript", "-e", notifyScript, message, title, subtitle).Run()
+}
 
-	script := fmt.Sprintf(`display notification "%s" with title "%s" subtitle "%s" sound name "%s"`, escapedMsg, escapedTitle, escapedSubtitle, sound)
-	cmd := exec.Command("osascript", "-e", script)
-	return cmd.Run()
+func (n AppleScriptNotifier) PlaySound(name string) {
+	path := fmt.Sprintf("/System/Library/Sounds/%s.aiff", validSound(name))
+	_ = exec.Command("afplay", path).Run()
 }
