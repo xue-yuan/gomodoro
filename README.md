@@ -4,14 +4,42 @@ This is a terminal-based Pomodoro timer only for **MacOS**.
 
 ## Prerequisites
 
-1. **Golang**: Version 1.26.4 or higher to build from source (see `go.mod`).
+1. **Golang**: Version 1.27.1 or higher, only needed to build from source (see `go.mod`).
 2. **Spotify Premium**: (Optional, required for Spotify playback controls).
 
-## Installation & Build
+## Installation
+
+### Homebrew (recommended)
+
+```bash
+brew install xue-yuan/tap/gomodoro
+```
+
+Or tap first, then install:
+
+```bash
+brew tap xue-yuan/tap
+brew install gomodoro
+```
+
+To upgrade later:
+
+```bash
+brew upgrade gomodoro
+```
+
+Then run:
+
+```bash
+gomodoro
+```
+
+### Build from source
 
 Clone the repository and build the binary:
 
 ```bash
+git clone https://github.com/xue-yuan/gomodoro.git
 cd gomodoro
 go build -o gomodoro
 ```
